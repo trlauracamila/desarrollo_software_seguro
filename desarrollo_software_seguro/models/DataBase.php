@@ -3,7 +3,7 @@
         #  Conexión Local
         public static function connection(){
             $hostname = "localhost";
-            $port = "3307";
+            $port = "3308";
             $database = "db_tps_nc_iv_2771440";
             $username = "root";
             $password = "";
