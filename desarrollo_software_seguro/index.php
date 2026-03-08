@@ -1,70 +1,75 @@
 <?php
 ob_start();
 session_start();
-// session_destroy();
-
 require_once "models/DataBase.php";
 
-/* Controladores permitidos */
-$allowedControllers = ["Landing", "Login", "User", "Product"];
+// Lista blanca de controladores permitidos
+$allowed_controllers = [
+    'Landing', 
+    'Login', 
+    'Home', 
+    'User', 
+    'Product'
+    // Agrega aquí todos los controladores válidos de tu aplicación
+];
 
-/* Obtener controlador */
-$controller = isset($_GET['c']) ? $_GET['c'] : "Landing";
+// Validar el controlador
+$controller = isset($_REQUEST['c']) ? $_REQUEST['c'] : "Landing";
 
-/* Validar controlador */
-if (!in_array($controller, $allowedControllers)) {
-    $controller = "Landing";
+// Verificar que el controlador está en la lista blanca
+if (!in_array($controller, $allowed_controllers)) {
+    // Si no es válido, redirigir o usar un controlador por defecto seguro
+    header("Location:?");
+    ob_end_flush();
+    exit;
 }
 
 $route_controller = "controllers/" . $controller . ".php";
 
 if (file_exists($route_controller)) {
-
     $view = $controller;
-
     require_once $route_controller;
 
-    $controller = new $controller();
-
-    /* Acción */
-    $action = isset($_GET['a']) ? $_GET['a'] : "main";
-
-    if (!method_exists($controller, $action)) {
-        $action = "main";
+    $controller = new $controller;
+    
+    // Validar la acción (también deberías tener una lista blanca)
+    $action = isset($_REQUEST['a']) ? $_REQUEST['a'] : 'main';
+    
+    // Lista blanca de acciones permitidas para este controlador
+    // Esto es un ejemplo - deberías adaptarlo según tu estructura
+    $allowed_actions = ['main', 'create', 'edit', 'delete']; 
+    
+    if (!in_array($action, $allowed_actions)) {
+        $action = 'main'; // Acción por defecto si no es válida
     }
 
-    if ($view === "Landing" || $view === "Login") {
-
+    if ($view === 'Landing' || $view === 'Login') {
         require_once "views/company/header.view.php";
-        call_user_func([$controller, $action]);
-        require_once "views/company/footer.view.php");
-
+        if (is_callable(array($controller, $action))) {
+            call_user_func(array($controller, $action));
+        }
+        require_once "views/company/footer.view.php";
     } elseif (!empty($_SESSION['session'])) {
-
         require_once "models/User.php";
-
         $profile = unserialize($_SESSION['profile']);
         $session = $_SESSION['session'];
-
-        require_once "views/roles/".$session."/header.view.php";
-
-        call_user_func([$controller, $action]);
-
-        require_once "views/roles/".$session."/footer.view.php";
-
+        
+        // Validar el rol de sesión
+        $allowed_roles = ['admin', 'user', 'guest']; // Roles permitidos
+        if (in_array($session, $allowed_roles)) {
+            require_once "views/roles/".$session."/header.view.php";
+            if (is_callable(array($controller, $action))) {
+                call_user_func(array($controller, $action));
+            }
+            require_once "views/roles/".$session."/footer.view.php";
+        } else {
+            header("Location:?");
+        }
     } else {
-
-        header("Location: index.php?c=Login");
-        exit;
-
+        header("Location:?");
     }
-
 } else {
-
-    header("Location: index.php?c=Landing");
-    exit;
-
+    header("Location:?");
 }
-
 ob_end_flush();
 ?>
